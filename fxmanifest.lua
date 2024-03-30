@@ -4,20 +4,21 @@ game 'gta5'
 lua54 'yes'
 
 title 'SLRN Multijob'
-description 'QBX_Core multijob application for LB-Phone'
+description 'QB-Core multijob application for LB-Phone'
 author 'solareon.'
 version '1.0.0'
 
 shared_scripts {
-    '@ox_lib/init.lua'
+    '@ox_lib/init.lua',
+    'config.lua'
 }
 
 client_scripts {
-    '@qbx_core/modules/playerdata.lua',
     'client/cl_main.lua',
 }
 
 server_scripts {
+    '@oxmysql/lib/MySQL.lua',
     'server/sv_main.lua',
 }
 
@@ -27,5 +28,4 @@ files {
 
 ui_page 'ui/index.html'
 
-dependency 'qbx_core'
 dependency 'lb-phone'

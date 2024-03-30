@@ -1,6 +1,6 @@
-# SLRN Multijob - App for LB-Phone
+# SLRN QB Multijob - App for LB-Phone
 
-A simple lb-phone application to manage the native [qbx_core](https://github.com/qbox-project/qbx_core) multijob. It does not manage multigang, if you wish to do that then you will need to modify the script yourself.
+A simple lb-phone application to manage multiple jobs in [qb-core](https://github.com/qbcore-framework/qb-core).
 
 # Preview
 ![image](https://github.com/solareon/slrn_multijob/assets/769465/eba40145-4255-4993-9527-945ff4eaec0c)
@@ -15,7 +15,6 @@ A simple lb-phone application to manage the native [qbx_core](https://github.com
 - [FuZZED105](https://github.com/FuZZED105/fzd_multijob) for the original app
 
 # Dependencies
-- [qbx_core](https://github.com/qbox-project/qbx_core) 1.7.0 or later
 - [lb-phone](https://lbphone.com/)
 - [ox_lib](https://github.com/overextended/ox_lib)
 
