@@ -8,13 +8,13 @@ end
 local Config = lib.require('config')
 
 local function GetJobCount(cid)
-    local result = MySQL.query.await('SELECT COUNT(*) as jobCount FROM save_jobs WHERE cid = ?', {cid})
+    local result = MySQL.query.await('SELECT COUNT(*) as jobCount FROM save_jobs WHERE cid = ?', { cid })
     local jobCount = result[1].jobCount
     return jobCount
 end
 
 local function canSetJob(cid, jobName)
-    local jobs = MySQL.query.await('SELECT job, grade FROM save_jobs WHERE cid = ? ', {cid})
+    local jobs = MySQL.query.await('SELECT job, grade FROM save_jobs WHERE cid = ? ', { cid })
     if not jobs then return false end
     for i = 1, #jobs do
         if jobs[i].job == jobName then
@@ -27,18 +27,19 @@ end
 lib.callback.register('slrn_multijob:server:myJobs', function(source)
     local Player = QBCore.Functions.GetPlayer(source)
     local storeJobs = {}
-    local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ?', {Player.PlayerData.citizenid})
+    local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ?', { Player.PlayerData.citizenid })
     for k, v in pairs(result) do
         local job = QBCore.Shared.Jobs[v.job]
 
-        if not job then 
-            return error(('MISSING JOB FROM jobs.lua: "%s" | CITIZEN ID: %s'): format(v.job, Player.PlayerData.citizenid))
+        if not job then
+            return error(('MISSING JOB FROM jobs.lua: "%s" | CITIZEN ID: %s'):format(v.job, Player.PlayerData.citizenid))
         end
 
         local grade = job.grades[tostring(v.grade)]
 
-        if not grade then 
-            return error(('MISSING JOB GRADE for "%s". GRADE MISSING: %s | CITIZEN ID: %s'): format(v.job, v.grade, Player.PlayerData.citizenid)) 
+        if not grade then
+            return error(('MISSING JOB GRADE for "%s". GRADE MISSING: %s | CITIZEN ID: %s'):format(v.job, v.grade,
+                Player.PlayerData.citizenid))
         end
 
         storeJobs[#storeJobs + 1] = {
@@ -80,8 +81,8 @@ end)
 
 lib.callback.register('slrn_multijob:server:deleteJob', function(source, job)
     local Player = QBCore.Functions.GetPlayer(source)
-    MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? and job = ?', {Player.PlayerData.citizenid, job})
-    QBCore.Functions.Notify(source, 'You deleted '..QBCore.Shared.Jobs[job].label..' job from your menu.')
+    MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? and job = ?', { Player.PlayerData.citizenid, job })
+    QBCore.Functions.Notify(source, 'You deleted ' .. QBCore.Shared.Jobs[job].label .. ' job from your menu.')
     if Player.PlayerData.job.name == job then
         Player.Functions.SetJob('unemployed', 0)
     end
@@ -94,14 +95,16 @@ RegisterNetEvent('slrn_multijob:server:newJob', function(newJob)
     local hasJob = false
     local cid = Player.PlayerData.citizenid
     if newJob.name == 'unemployed' then return end
-    local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ? AND job = ?', {cid, newJob.name})
+    local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ? AND job = ?', { cid, newJob.name })
     if result[1] then
-        MySQL.query.await('UPDATE save_jobs SET grade = ? WHERE job = ? and cid = ?', {newJob.grade.level, newJob.name, cid})
+        MySQL.query.await('UPDATE save_jobs SET grade = ? WHERE job = ? and cid = ?',
+            { newJob.grade.level, newJob.name, cid })
         hasJob = true
         return
     end
     if not hasJob and GetJobCount(cid) < Config.MaxJobs then
-        MySQL.insert.await('INSERT INTO save_jobs (cid, job, grade) VALUE (?, ?, ?)', {cid, newJob.name, newJob.grade.level})
+        MySQL.insert.await('INSERT INTO save_jobs (cid, job, grade) VALUE (?, ?, ?)',
+            { cid, newJob.name, newJob.grade.level })
     else
         Player.Functions.SetJob('unemployed', 0)
         return QBCore.Functions.Notify(src, 'You have the max amount of jobs.', 'error')
@@ -114,14 +117,14 @@ RegisterNetEvent('qb-bossmenu:server:FireEmployee', function(target) -- Removes 
     local Employee = QBCore.Functions.GetPlayerByCitizenId(target)
     if Employee then
         local oldJob = Employee.PlayerData.job.name
-        MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?', {Employee.PlayerData.citizenid, oldJob})
+        MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?', { Employee.PlayerData.citizenid, oldJob })
     else
         local player = MySQL.query.await('SELECT * FROM players WHERE citizenid = ? LIMIT 1', { target })
         if player[1] then
             Employee = player[1]
             Employee.job = json.decode(Employee.job)
             if Employee.job.grade.level > Player.PlayerData.job.grade.level then return end
-            MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?', {target, Employee.job.name})
+            MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?', { target, Employee.job.name })
         end
     end
 end)
@@ -129,9 +132,9 @@ end)
 local function adminRemoveJob(src, id, job)
     local Player = QBCore.Functions.GetPlayer(id)
     local cid = Player.PlayerData.citizenid
-    local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ? AND job = ?', {cid, job})
+    local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ? AND job = ?', { cid, job })
     if result[1] then
-        MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?', {cid, job})
+        MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?', { cid, job })
         QBCore.Functions.Notify(src, ('Job: %s was removed from ID: %s'):format(job, id), 'success')
         if Player.PlayerData.job.name == job then
             Player.Functions.SetJob('unemployed', 0)
@@ -141,7 +144,8 @@ local function adminRemoveJob(src, id, job)
     end
 end
 
-QBCore.Commands.Add('removejob', "Remove a job from the player's multijob.", { { name = 'id', help = 'ID of the player' }, { name = 'job', help = 'Name of Job' } }, true, function(source, args)
+QBCore.Commands.Add('removejob', "Remove a job from the player's multijob.",
+    { { name = 'id', help = 'ID of the player' }, { name = 'job', help = 'Name of Job' } }, true, function(source, args)
     local src = source
     if not args[1] then
         QBCore.Functions.Notify(src, 'Must provide a player id.', 'error')
@@ -153,7 +157,10 @@ QBCore.Commands.Add('removejob', "Remove a job from the player's multijob.", { {
     end
     local id = tonumber(args[1])
     local Player = QBCore.Functions.GetPlayer(id)
-    if not Player then QBCore.Functions.Notify(src, 'Player not online.', 'error') return end
+    if not Player then
+        QBCore.Functions.Notify(src, 'Player not online.', 'error')
+        return
+    end
 
     adminRemoveJob(src, id, args[2])
 end, 'admin')
