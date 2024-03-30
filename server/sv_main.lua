@@ -108,6 +108,24 @@ RegisterNetEvent('slrn_multijob:server:newJob', function(newJob)
     end
 end)
 
+RegisterNetEvent('qb-bossmenu:server:FireEmployee', function(target) -- Removes job when fired from qb-bossmenu.
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    local Employee = QBCore.Functions.GetPlayerByCitizenId(target)
+    if Employee then
+        local oldJob = Employee.PlayerData.job.name
+        MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?', {Employee.PlayerData.citizenid, oldJob})
+    else
+        local player = MySQL.query.await('SELECT * FROM players WHERE citizenid = ? LIMIT 1', { target })
+        if player[1] then
+            Employee = player[1]
+            Employee.job = json.decode(Employee.job)
+            if Employee.job.grade.level > Player.PlayerData.job.grade.level then return end
+            MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?', {target, Employee.job.name})
+        end
+    end
+end)
+
 local function adminRemoveJob(src, id, job)
     local Player = QBCore.Functions.GetPlayer(id)
     local cid = Player.PlayerData.citizenid
