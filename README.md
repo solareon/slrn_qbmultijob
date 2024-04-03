@@ -15,6 +15,7 @@ A simple lb-phone application to manage multiple jobs in [qb-core](https://githu
 - [FuZZED105](https://github.com/FuZZED105/fzd_multijob) for the original app
 
 # Dependencies
+- [qb-core](https://github.com/qbcore-framework/qb-core)
 - [lb-phone](https://lbphone.com/)
 - [ox_lib](https://github.com/overextended/ox_lib)
 
