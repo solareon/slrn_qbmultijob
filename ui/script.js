@@ -50,7 +50,7 @@ async function loadJobs(jobs) {
 };
 
 window.addEventListener("load", () => {
-    $.post('https://slrn_multijob/getJobs', JSON.stringify({}), function(data) {
+    $.post('https://slrn_qbmultijob/getJobs', JSON.stringify({}), function(data) {
         loadJobs(data);
     });
 
@@ -89,7 +89,7 @@ window.addEventListener("load", () => {
 
 window.addEventListener("message", (event) => {
     if(event.data.action == "update-jobs") {
-        $.post('https://slrn_multijob/getJobs', JSON.stringify({}), function(data) {
+        $.post('https://slrn_qbmultijob/getJobs', JSON.stringify({}), function(data) {
             loadJobs(data);
         });
     };
