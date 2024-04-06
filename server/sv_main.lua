@@ -28,7 +28,7 @@ lib.callback.register('slrn_multijob:server:myJobs', function(source)
     local Player = QBCore.Functions.GetPlayer(source)
     local storeJobs = {}
     local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ?', { Player.PlayerData.citizenid })
-    for k, v in pairs(result) do
+    for _, v in pairs(result) do
         local job = QBCore.Shared.Jobs[v.job]
 
         if not job then
