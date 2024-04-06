@@ -31,7 +31,7 @@ RegisterNUICallback('getJobs', function(_, cb)
     local jobMenu = {}
     local playerJobs = lib.callback.await('slrn_multijob:server:myJobs', false)
     for _, job in pairs(playerJobs) do
-        local primaryJob = PlayerData.job.name == job
+        local primaryJob = PlayerData.job.name == job.job
         jobMenu[#jobMenu + 1] = {
             title = job.jobLabel,
             description = ('Grade: %s [%s] <br /> Salary: $%s'):format(job.gradeLabel, job.grade, job.salary),
