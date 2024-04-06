@@ -99,7 +99,6 @@ RegisterNetEvent('slrn_multijob:server:newJob', function(newJob)
     if result[1] then
         MySQL.query.await('UPDATE save_jobs SET grade = ? WHERE job = ? and cid = ?',
             { newJob.grade.level, newJob.name, cid })
-        hasJob = true
         return
     end
     if not hasJob and GetJobCount(cid) < Config.MaxJobs then

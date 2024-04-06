@@ -18,6 +18,7 @@ A simple lb-phone application to manage multiple jobs in [qb-core](https://githu
 - [qb-core](https://github.com/qbcore-framework/qb-core)
 - [lb-phone](https://lbphone.com/)
 - [ox_lib](https://github.com/overextended/ox_lib)
+- [oxmysql](https://github.com/overextended/oxmysql)
 
 # Copyright
 
