@@ -1,4 +1,4 @@
-# Contributing to Qbox
+# Contributing
 
 Thank you for taking the time to contribute!
 
