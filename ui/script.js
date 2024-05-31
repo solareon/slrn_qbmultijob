@@ -50,6 +50,8 @@ async function loadJobs(jobs) {
 };
 
 window.addEventListener("load", () => {
+    if (typeof GetParentResourceName === "function") { return }
+
     $.post('https://slrn_qbmultijob/getJobs', JSON.stringify({}), function(data) {
         loadJobs(data);
     });
