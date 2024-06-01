@@ -7,7 +7,7 @@ A simple lb-phone application to manage multiple jobs in [qb-core](https://githu
 
 
 # Support
-- No support is provided but you can ask questions in the lb-phone or qbox discord and someone may chime in.
+- [Discord](https://discord.gg/TZFBBHvG6E)
 
 # Credits
 - [Randolio](https://github.com/Randolio/randol_multijob) for the multijob natives
