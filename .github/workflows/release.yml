@@ -52,10 +52,10 @@ jobs:
 
       - name: Bundle files
         run: |
-          mkdir -p ./temp/${{ github.event.repository.name }}
-          cp ./{README.md,LICENSE,fxmanifest.lua} ./temp/${{ github.event.repository.name }}
-          cp -r ./{client,ui,server} ./temp/${{ github.event.repository.name }}
-          cd ./temp && zip -r ../${{ github.event.repository.name }}.zip ./${{ github.event.repository.name }}
+          mkdir -p ./temp/${{ github.repository.name }}
+          cp ./{README.md,LICENSE,fxmanifest.lua} ./temp/${{ github.repository.name }}
+          cp -r ./{client,ui,server} ./temp/${{ github.repository.name }}
+          cd ./temp && zip -r ../${{ github.repository.name }}.zip ./${{ github.repository.name }}
 
       - name: Create Release
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
@@ -64,7 +64,7 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           title: "${{ env.RELEASE_VERSION }}"
           prerelease: false
-          files: slrn_groups.zip
+          files: ${{ github.repository.name }}.zip
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
