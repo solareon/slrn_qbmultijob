@@ -52,10 +52,10 @@ jobs:
 
       - name: Bundle files
         run: |
-          mkdir -p ./temp/slrn_qbmultijob
-          cp ./{README.md,LICENSE,fxmanifest.lua} ./temp/slrn_qbmultijob
-          cp -r ./{client,ui,server} ./temp/slrn_qbmultijob
-          cd ./temp && zip -r ../slrn_qbmultijob.zip ./slrn_qbmultijob
+          mkdir -p ./temp/${{ github.event.repository.name }}
+          cp ./{README.md,LICENSE,fxmanifest.lua} ./temp/${{ github.event.repository.name }}
+          cp -r ./{client,ui,server} ./temp/${{ github.event.repository.name }}
+          cd ./temp && zip -r ../${{ github.event.repository.name }}.zip ./${{ github.event.repository.name }}
 
       - name: Create Release
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
