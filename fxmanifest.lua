@@ -6,7 +6,7 @@ lua54 'yes'
 title 'SLRN Multijob'
 description 'QB-Core multijob application for LB-Phone'
 author 'solareon.'
-version '1.0.4'
+version '1.0.0'
 
 shared_scripts {
     '@ox_lib/init.lua',
