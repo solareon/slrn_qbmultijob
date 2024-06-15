@@ -1,9 +1,8 @@
-name: "Discord Releases"
+name: "Discord Release Notification"
 
 on:
-  release:
-    types: [published]
-  
+    release:
+      types: [published]
 jobs:
   github-releases-to-discord:
     name: Discord Releases Changelog
@@ -15,7 +14,9 @@ jobs:
       uses: SethCohen/github-releases-to-discord@v1.15.0
       with:
         webhook_url: ${{ secrets.WEBHOOK_URL }}
-        color: "15852866"
+        color: "16736808"
         username: ${{ github.event.repository.name }}
-        avatar_url: "https://i.imgur.com/Eh1yiLI.png"
+        avatar_url: "https://slrn.dev/SLRN_Development.png"
         footer_timestamp: true
+        footer_title: "SLRN Development"
+        footer_icon_url: "https://slrn.dev/SLRN_Development.png"
