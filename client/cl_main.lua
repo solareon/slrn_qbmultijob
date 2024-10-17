@@ -65,9 +65,8 @@ RegisterNUICallback('changeJob', function(job, cb)
     end, job)
 end)
 
-RegisterNetEvent('QBCore:Client:OnJobUpdate', function(JobInfo)
+RegisterNetEvent('QBCore:Client:OnJobUpdate', function(_)
     exports["lb-phone"]:SendCustomAppMessage('slrn_multijob', { action = 'update-jobs' })
-    TriggerServerEvent('slrn_multijob:server:newJob', JobInfo)
 end)
 
 AddEventHandler('onResourceStart', function(resource)
