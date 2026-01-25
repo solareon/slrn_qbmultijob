@@ -175,3 +175,12 @@ AddEventHandler('onResourceStart', function(resource)
         );
     ]=])
 end)
+
+CreateThread(function()
+    if GetResourceState('qbx_core') == 'started' then
+        while true do
+            lib.print.error('QBX Core detected! You downloaded the wrong one. Visit https://github.com/solareon/slrn_multijob and download the correct resource')
+            Wait(100)
+        end
+    end
+end)
