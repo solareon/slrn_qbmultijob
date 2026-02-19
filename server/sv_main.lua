@@ -26,20 +26,23 @@ end
 
 lib.callback.register('slrn_multijob:server:myJobs', function(source)
     local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then return {} end
     local storeJobs = {}
     local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ?', { Player.PlayerData.citizenid })
     for _, v in pairs(result) do
         local job = QBCore.Shared.Jobs[v.job]
 
         if not job then
-            return error(('MISSING JOB FROM jobs.lua: "%s" | CITIZEN ID: %s'):format(v.job, Player.PlayerData.citizenid))
+            lib.print.error(('MISSING JOB FROM jobs.lua: "%s" | CITIZEN ID: %s'):format(v.job, Player.PlayerData.citizenid))
+            return storeJobs
         end
 
         local grade = job.grades[tostring(v.grade)]
 
         if not grade then
-            return error(('MISSING JOB GRADE for "%s". GRADE MISSING: %s | CITIZEN ID: %s'):format(v.job, v.grade,
+            lib.print.error(('MISSING JOB GRADE for "%s". GRADE MISSING: %s | CITIZEN ID: %s'):format(v.job, v.grade,
                 Player.PlayerData.citizenid))
+            return storeJobs
         end
 
         storeJobs[#storeJobs + 1] = {

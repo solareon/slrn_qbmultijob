@@ -15,7 +15,7 @@ local function AddApp()
     })
 
     if not added then
-        print('Could not add app:', errorMessage)
+        lib.print.info('Could not add app:', errorMessage)
     end
 end
 CreateThread(function()

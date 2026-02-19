@@ -2,12 +2,12 @@ async function addJob(info) {
     if (info.disabled) {
         const container = document.querySelector('#activeJob-card');
         container.innerHTML = '';
-        
+
         var status = 'Go On Duty';
         if (info.duty) {
             status = 'Go Off Duty';
         }
-        
+
         var jobPanel = `
         <div class="activeJob-name">${info.title}</div>
         <div class="activeJob-grade">${info.description}</div>
@@ -23,7 +23,7 @@ async function addJob(info) {
             <div class="job-status" data-job="${info.jobName}">Select</div>
             <div class="job-remove" data-job="${info.jobName}" data-title="${info.title}">Remove Job</div>
         </div>`;
-        
+
         $('#jobs').append(jobPanel);
     }
 };
@@ -33,9 +33,18 @@ async function loadJobs(jobs) {
     elementsToRemove.forEach(element => {
         element.remove();
     });
+    jobs = Array.isArray(jobs) ? jobs : Object.values(jobs || {});
+    if (!jobs.length) {
+        var emptyJobPanel = `
+        <div class="job-card">
+            <div class="job-name">No Jobs Found</div>
+        </div>`;
+        $('#jobs').append(emptyJobPanel);
+        return;
+    }
     jobs.sort((a, b) => {
         const titleA = a.title.toLowerCase();
-        const titleB = b.title.toLowerCase();    
+        const titleB = b.title.toLowerCase();
         if (titleA < titleB) {
             return -1;
         }
@@ -44,7 +53,7 @@ async function loadJobs(jobs) {
         }
         return 0;
     });
-    for (i = 0; i < jobs.length; i++) {
+    for (let i = 0; i < jobs.length; i++) {
         addJob(jobs[i]);
     }
 };
