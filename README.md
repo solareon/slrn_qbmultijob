@@ -2,7 +2,11 @@
 
 A simple lb-phone application to manage multiple jobs in [qb-core](https://github.com/qbcore-framework/qb-core).
 
-# If you are looking for the [Qbox version that is located here](https://github.com/solareon/slrn_multijob)
+# [Red40 Development](https://red40.dev/scripts)
+Like this resource and want to support further development? Checkout my store [Red40 Development](https://red40.dev/scripts)
+
+# [Qbox version](https://github.com/solareon/slrn_multijob)
+You really should move to qbox
 
 # Preview
 ![image](https://github.com/solareon/slrn_multijob/assets/769465/eba40145-4255-4993-9527-945ff4eaec0c)
