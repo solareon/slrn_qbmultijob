@@ -1,4 +1,4 @@
-lib.versionCheck('solareon/slrn_qbmultijob')
+if not lib then return end
 
 if GetCurrentResourceName() ~= 'slrn_qbmultijob' then
     lib.print.error('The resource needs to be named ^5slrn_qbmultijob^7.')
