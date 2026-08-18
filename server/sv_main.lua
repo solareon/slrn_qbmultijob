@@ -34,6 +34,43 @@ local function canSetJob(cid, jobName)
     return false
 end
 
+local function validateSavedJobs()
+    local savedJobs = MySQL.query.await('SELECT cid, job, grade FROM save_jobs')
+    local invalidCount = 0
+
+    for i = 1, #savedJobs do
+        local savedJob = savedJobs[i]
+        local jobInfo = QBCore.Shared.Jobs[savedJob.job]
+        local invalidReason
+
+        if not jobInfo then
+            invalidReason = 'job does not exist in QBCore.Shared.Jobs'
+        elseif not jobInfo.grades or not jobInfo.grades[tostring(savedJob.grade)] then
+            invalidReason = 'grade does not exist for this job'
+        end
+
+        if invalidReason then
+            invalidCount = invalidCount + 1
+            local message = ('Invalid save_jobs entry: cid=%s job=%s grade=%s (%s)')
+                :format(savedJob.cid, savedJob.job, savedJob.grade, invalidReason)
+
+            if Config.RemoveInvalidJobsOnStart then
+                MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?',
+                    { savedJob.cid, savedJob.job })
+                lib.print.warn(message .. ' - removed')
+            else
+                lib.print.warn(message)
+            end
+        end
+    end
+
+    if invalidCount > 0 then
+        local action = Config.RemoveInvalidJobsOnStart and 'removed' or 'reported'
+        lib.print.warn(('save_jobs validation complete: %d invalid entr%s %s.')
+            :format(invalidCount, invalidCount == 1 and 'y' or 'ies', action))
+    end
+end
+
 lib.callback.register('slrn_multijob:server:myJobs', function(source)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return {} end
@@ -244,7 +281,7 @@ end)
 AddEventHandler('onResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     for _, Player in pairs(QBCore.Functions.GetQBPlayers()) do fixJobMethod(Player) end
-    MySQL.query([=[
+    MySQL.query.await([=[
         CREATE TABLE IF NOT EXISTS `save_jobs` (
             `cid` VARCHAR(100) NOT NULL,
             `job` VARCHAR(100) NOT NULL,
@@ -252,6 +289,7 @@ AddEventHandler('onResourceStart', function(resource)
             UNIQUE KEY `cid_job` (`cid`,`job`)
         );
     ]=])
+    validateSavedJobs()
 end)
 
 CreateThread(function()
