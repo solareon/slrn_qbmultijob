@@ -13,6 +13,16 @@ local function GetJobCount(cid)
     return jobCount
 end
 
+local function isWhiteListedJob(job)
+    if Config.WhiteListJobs[job] then return true end
+
+    for _, whiteListedJob in pairs(Config.WhiteListJobs) do
+        if whiteListedJob:lower() == job then return true end
+    end
+
+    return false
+end
+
 local function canSetJob(cid, jobName)
     local jobs = MySQL.query.await('SELECT job, grade FROM save_jobs WHERE cid = ? ', { cid })
     if not jobs then return false end
@@ -75,7 +85,12 @@ lib.callback.register('slrn_multijob:server:changeJob', function(source, job)
 
     if not canSet then return end
 
-    player.Functions.SetJob(job, grade)
+    local changed = player.Functions.SetJob(job, grade)
+    if not changed then
+        QBCore.Functions.Notify(source, 'Unable to change your job.', 'error')
+        return false
+    end
+
     player.Functions.SetJobDuty(false)
     TriggerClientEvent('QBCore:Client:SetDuty', source, false)
     QBCore.Functions.Notify(source, ('Your job is now: %s'):format(jobInfo.label))
@@ -152,16 +167,22 @@ local function newSetJob(source, job, grade)
     grade = grade or '0'
     if not QBCore.Shared.Jobs[job] then return false end
 
+    local gradeKey = tostring(grade)
+    local jobGradeInfo = QBCore.Shared.Jobs[job].grades[gradeKey]
+    if not jobGradeInfo then
+        QBCore.Functions.Notify(source, 'Invalid job grade.', 'error')
+        return false
+    end
+
     local hasJob = false
-    local whiteListJob = false
-    if Config.WhiteListJobs[job] then whiteListJob = true end
+    local whiteListJob = isWhiteListedJob(job)
     local whiteListLimit = false
     local cid = player.PlayerData.citizenid
     if job ~= 'unemployed' then
         local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ?', { cid })
         if result then
             for _, v in pairs(result) do
-                if Config.WhiteListJobs[v.job] and whiteListJob then whiteListLimit = true end
+                if isWhiteListedJob(v.job) and whiteListJob and v.job ~= job then whiteListLimit = true end
                 if v.job == job then
                     MySQL.query.await('UPDATE save_jobs SET grade = ? WHERE job = ? and cid = ?',
                         { grade, job, cid })
@@ -180,8 +201,6 @@ local function newSetJob(source, job, grade)
         end
     end
 
-    local gradeKey = tostring(grade)
-    local jobGradeInfo = QBCore.Shared.Jobs[job].grades[gradeKey]
     local gradeData = {
         name = 'No Grades',
         level = 0,

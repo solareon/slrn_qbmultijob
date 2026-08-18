@@ -59,9 +59,11 @@ RegisterNUICallback('removeJob', function(job, cb)
 end)
 
 RegisterNUICallback('changeJob', function(job, cb)
-    lib.callback('slrn_multijob:server:changeJob', false, function()
-        cb(true)
-        exports["lb-phone"]:SendCustomAppMessage('slrn_multijob', { action = 'update-jobs' })
+    lib.callback('slrn_multijob:server:changeJob', false, function(changed)
+        cb(changed == true)
+        if changed then
+            exports["lb-phone"]:SendCustomAppMessage('slrn_multijob', { action = 'update-jobs' })
+        end
     end, job)
 end)
 
