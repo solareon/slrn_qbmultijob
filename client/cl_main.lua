@@ -1,4 +1,4 @@
-if GetCurrentResourceName() ~= 'slrn_qbmultijob' then
+if cache.resource ~= 'slrn_qbmultijob' then
     lib.print.error('This resource needs to be named ^5slrn_qbmultijob^7.')
     return
 end

@@ -1,11 +1,12 @@
 if not lib then return end
 
-if GetCurrentResourceName() ~= 'slrn_qbmultijob' then
+if cache.resource ~= 'slrn_qbmultijob' then
     lib.print.error('The resource needs to be named ^5slrn_qbmultijob^7.')
     return
 end
 
 local Config = lib.require('config')
+local saveJobsCreated = false
 
 local function GetJobCount(cid)
     local result = MySQL.query.await('SELECT COUNT(*) as jobCount FROM save_jobs WHERE cid = ?', { cid })
@@ -68,6 +69,21 @@ local function validateSavedJobs()
         local action = Config.RemoveInvalidJobsOnStart and 'removed' or 'reported'
         lib.print.warn(('save_jobs validation complete: %d invalid entr%s %s.')
             :format(invalidCount, invalidCount == 1 and 'y' or 'ies', action))
+    end
+end
+
+local function populateSavedJobs()
+    local players = MySQL.query.await('SELECT citizenid, job FROM players')
+
+    for i = 1, #players do
+        local playerJob = json.decode(players[i].job)
+        if playerJob and playerJob.name ~= 'unemployed' and playerJob.grade and playerJob.grade.level ~= nil then
+            MySQL.query.await('INSERT IGNORE INTO save_jobs (cid, job, grade) VALUES (?, ?, ?)', {
+                players[i].citizenid,
+                playerJob.name,
+                playerJob.grade.level
+            })
+        end
     end
 end
 
@@ -279,16 +295,29 @@ AddEventHandler('QBCore:Server:PlayerLoaded', function(Player)
 end)
 
 AddEventHandler('onResourceStart', function(resource)
-    if resource ~= GetCurrentResourceName() then return end
+    if resource ~= cache.resource then return end
     for _, Player in pairs(QBCore.Functions.GetQBPlayers()) do fixJobMethod(Player) end
-    MySQL.query.await([=[
-        CREATE TABLE IF NOT EXISTS `save_jobs` (
-            `cid` VARCHAR(100) NOT NULL,
-            `job` VARCHAR(100) NOT NULL,
-            `grade` INT(11) NOT NULL,
-            UNIQUE KEY `cid_job` (`cid`,`job`)
-        );
-    ]=])
+
+    local existingTable = MySQL.query.await([[
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'save_jobs'
+        LIMIT 1
+    ]])
+
+    saveJobsCreated = #existingTable == 0
+    if saveJobsCreated then
+        MySQL.query.await([=[
+            CREATE TABLE `save_jobs` (
+                `cid` VARCHAR(100) NOT NULL,
+                `job` VARCHAR(100) NOT NULL,
+                `grade` INT(11) NOT NULL,
+                UNIQUE KEY `cid_job` (`cid`,`job`)
+            );
+        ]=])
+        populateSavedJobs()
+    end
+
     validateSavedJobs()
 end)
 
