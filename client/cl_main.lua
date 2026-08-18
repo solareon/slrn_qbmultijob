@@ -1,4 +1,4 @@
-if GetCurrentResourceName() ~= 'slrn_qbmultijob' then
+if cache.resource ~= 'slrn_qbmultijob' then
     lib.print.error('This resource needs to be named ^5slrn_qbmultijob^7.')
     return
 end
@@ -59,15 +59,16 @@ RegisterNUICallback('removeJob', function(job, cb)
 end)
 
 RegisterNUICallback('changeJob', function(job, cb)
-    lib.callback('slrn_multijob:server:changeJob', false, function()
-        cb(true)
-        exports["lb-phone"]:SendCustomAppMessage('slrn_multijob', { action = 'update-jobs' })
+    lib.callback('slrn_multijob:server:changeJob', false, function(changed)
+        cb(changed == true)
+        if changed then
+            exports["lb-phone"]:SendCustomAppMessage('slrn_multijob', { action = 'update-jobs' })
+        end
     end, job)
 end)
 
-RegisterNetEvent('QBCore:Client:OnJobUpdate', function(JobInfo)
+RegisterNetEvent('QBCore:Client:OnJobUpdate', function(_)
     exports["lb-phone"]:SendCustomAppMessage('slrn_multijob', { action = 'update-jobs' })
-    TriggerServerEvent('slrn_multijob:server:newJob', JobInfo)
 end)
 
 AddEventHandler('onResourceStart', function(resource)

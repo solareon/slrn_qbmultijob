@@ -1,16 +1,27 @@
 if not lib then return end
 
-if GetCurrentResourceName() ~= 'slrn_qbmultijob' then
+if cache.resource ~= 'slrn_qbmultijob' then
     lib.print.error('The resource needs to be named ^5slrn_qbmultijob^7.')
     return
 end
 
 local Config = lib.require('config')
+local saveJobsCreated = false
 
 local function GetJobCount(cid)
     local result = MySQL.query.await('SELECT COUNT(*) as jobCount FROM save_jobs WHERE cid = ?', { cid })
     local jobCount = result[1].jobCount
     return jobCount
+end
+
+local function isWhiteListedJob(job)
+    if Config.WhiteListJobs[job] then return true end
+
+    for _, whiteListedJob in pairs(Config.WhiteListJobs) do
+        if whiteListedJob:lower() == job then return true end
+    end
+
+    return false
 end
 
 local function canSetJob(cid, jobName)
@@ -22,6 +33,58 @@ local function canSetJob(cid, jobName)
         end
     end
     return false
+end
+
+local function validateSavedJobs()
+    local savedJobs = MySQL.query.await('SELECT cid, job, grade FROM save_jobs')
+    local invalidCount = 0
+
+    for i = 1, #savedJobs do
+        local savedJob = savedJobs[i]
+        local jobInfo = QBCore.Shared.Jobs[savedJob.job]
+        local invalidReason
+
+        if not jobInfo then
+            invalidReason = 'job does not exist in QBCore.Shared.Jobs'
+        elseif not jobInfo.grades or not jobInfo.grades[tostring(savedJob.grade)] then
+            invalidReason = 'grade does not exist for this job'
+        end
+
+        if invalidReason then
+            invalidCount = invalidCount + 1
+            local message = ('Invalid save_jobs entry: cid=%s job=%s grade=%s (%s)')
+                :format(savedJob.cid, savedJob.job, savedJob.grade, invalidReason)
+
+            if Config.RemoveInvalidJobsOnStart then
+                MySQL.query.await('DELETE FROM save_jobs WHERE cid = ? AND job = ?',
+                    { savedJob.cid, savedJob.job })
+                lib.print.warn(message .. ' - removed')
+            else
+                lib.print.warn(message)
+            end
+        end
+    end
+
+    if invalidCount > 0 then
+        local action = Config.RemoveInvalidJobsOnStart and 'removed' or 'reported'
+        lib.print.warn(('save_jobs validation complete: %d invalid entr%s %s.')
+            :format(invalidCount, invalidCount == 1 and 'y' or 'ies', action))
+    end
+end
+
+local function populateSavedJobs()
+    local players = MySQL.query.await('SELECT citizenid, job FROM players')
+
+    for i = 1, #players do
+        local playerJob = json.decode(players[i].job)
+        if playerJob and playerJob.name ~= 'unemployed' and playerJob.grade and playerJob.grade.level ~= nil then
+            MySQL.query.await('INSERT IGNORE INTO save_jobs (cid, job, grade) VALUES (?, ?, ?)', {
+                players[i].citizenid,
+                playerJob.name,
+                playerJob.grade.level
+            })
+        end
+    end
 end
 
 lib.callback.register('slrn_multijob:server:myJobs', function(source)
@@ -75,7 +138,12 @@ lib.callback.register('slrn_multijob:server:changeJob', function(source, job)
 
     if not canSet then return end
 
-    player.Functions.SetJob(job, grade)
+    local changed = player.Functions.SetJob(job, grade)
+    if not changed then
+        QBCore.Functions.Notify(source, 'Unable to change your job.', 'error')
+        return false
+    end
+
     player.Functions.SetJobDuty(false)
     TriggerClientEvent('QBCore:Client:SetDuty', source, false)
     QBCore.Functions.Notify(source, ('Your job is now: %s'):format(jobInfo.label))
@@ -90,27 +158,6 @@ lib.callback.register('slrn_multijob:server:deleteJob', function(source, job)
         Player.Functions.SetJob('unemployed', 0)
     end
     return true
-end)
-
-RegisterNetEvent('slrn_multijob:server:newJob', function(newJob)
-    local src = source
-    local Player = QBCore.Functions.GetPlayer(src)
-    local hasJob = false
-    local cid = Player.PlayerData.citizenid
-    if newJob.name == 'unemployed' then return end
-    local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ? AND job = ?', { cid, newJob.name })
-    if result[1] then
-        MySQL.query.await('UPDATE save_jobs SET grade = ? WHERE job = ? and cid = ?',
-            { newJob.grade.level, newJob.name, cid })
-        return
-    end
-    if not hasJob and GetJobCount(cid) < Config.MaxJobs then
-        MySQL.insert.await('INSERT INTO save_jobs (cid, job, grade) VALUE (?, ?, ?)',
-            { cid, newJob.name, newJob.grade.level })
-    else
-        Player.Functions.SetJob('unemployed', 0)
-        return QBCore.Functions.Notify(src, 'You have the max amount of jobs.', 'error')
-    end
 end)
 
 RegisterNetEvent('qb-bossmenu:server:FireEmployee', function(target) -- Removes job when fired from qb-bossmenu.
@@ -167,16 +214,111 @@ QBCore.Commands.Add('removejob', "Remove a job from the player's multijob.",
     adminRemoveJob(src, id, args[2])
 end, 'admin')
 
+local function newSetJob(source, job, grade)
+    local player = QBCore.Functions.GetPlayer(source)
+    job = job:lower()
+    grade = grade or '0'
+    if not QBCore.Shared.Jobs[job] then return false end
+
+    local gradeKey = tostring(grade)
+    local jobGradeInfo = QBCore.Shared.Jobs[job].grades[gradeKey]
+    if not jobGradeInfo then
+        QBCore.Functions.Notify(source, 'Invalid job grade.', 'error')
+        return false
+    end
+
+    local hasJob = false
+    local whiteListJob = isWhiteListedJob(job)
+    local whiteListLimit = false
+    local cid = player.PlayerData.citizenid
+    if job ~= 'unemployed' then
+        local result = MySQL.query.await('SELECT * FROM save_jobs WHERE cid = ?', { cid })
+        if result then
+            for _, v in pairs(result) do
+                if isWhiteListedJob(v.job) and whiteListJob and v.job ~= job then whiteListLimit = true end
+                if v.job == job then
+                    MySQL.query.await('UPDATE save_jobs SET grade = ? WHERE job = ? and cid = ?',
+                        { grade, job, cid })
+                    hasJob = true
+                end
+            end
+        end
+
+        if not hasJob and not whiteListLimit and GetJobCount(cid) < Config.MaxJobs then
+            MySQL.insert.await('INSERT INTO save_jobs (cid, job, grade) VALUE (?, ?, ?)',
+                { cid, job, grade })
+        else
+            local message = whiteListLimit and 'You have the maximum amount of allowlist jobs' or 'You have the max amount of jobs.'
+            QBCore.Functions.Notify(source, message, 'error')
+            return false
+        end
+    end
+
+    local gradeData = {
+        name = 'No Grades',
+        level = 0,
+        payment = 30,
+        isboss = false
+    }
+    if jobGradeInfo then
+        gradeData.name = jobGradeInfo.name
+        gradeData.level = tonumber(gradeKey)
+        gradeData.payment = jobGradeInfo.payment
+        gradeData.isboss = jobGradeInfo.isboss or false
+    end
+
+    player.Functions.SetPlayerData('job', {
+        name = job,
+        label = QBCore.Shared.Jobs[job].label,
+        onduty = QBCore.Shared.Jobs[job].defaultDuty,
+        type = QBCore.Shared.Jobs[job].type or 'none',
+        grade = gradeData,
+        isboss = jobGradeInfo.isboss or false
+    })
+
+    if not player.Offline then
+        TriggerEvent('QBCore:Server:OnJobUpdate', source, player.PlayerData.job)
+        TriggerClientEvent('QBCore:Client:OnJobUpdate', source, player.PlayerData.job)
+    end
+
+    return true
+end
+
+local function fixJobMethod(Player)
+    QBCore.Functions.AddPlayerMethod(Player.PlayerData.source, 'SetJob', function(job, grade)
+        return newSetJob(Player.PlayerData.source, job, grade)
+    end)
+end
+
+AddEventHandler('QBCore:Server:PlayerLoaded', function(Player)
+    fixJobMethod(Player)
+end)
+
 AddEventHandler('onResourceStart', function(resource)
-    if resource ~= GetCurrentResourceName() then return end
-    MySQL.query([=[
-        CREATE TABLE IF NOT EXISTS `save_jobs` (
-            `cid` VARCHAR(100) NOT NULL,
-            `job` VARCHAR(100) NOT NULL,
-            `grade` INT(11) NOT NULL,
-            UNIQUE KEY `cid_job` (`cid`,`job`)
-        );
-    ]=])
+    if resource ~= cache.resource then return end
+    for _, Player in pairs(QBCore.Functions.GetQBPlayers()) do fixJobMethod(Player) end
+
+    local existingTable = MySQL.query.await([[
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'save_jobs'
+        LIMIT 1
+    ]])
+
+    saveJobsCreated = #existingTable == 0
+    if saveJobsCreated then
+        MySQL.query.await([=[
+            CREATE TABLE `save_jobs` (
+                `cid` VARCHAR(100) NOT NULL,
+                `job` VARCHAR(100) NOT NULL,
+                `grade` INT(11) NOT NULL,
+                UNIQUE KEY `cid_job` (`cid`,`job`)
+            );
+        ]=])
+        populateSavedJobs()
+    end
+
+    validateSavedJobs()
 end)
 
 CreateThread(function()

@@ -12,7 +12,7 @@ CreateThread(function()
         end
 
         local latestVersion = jsonData.latestVersion
-        local currentVersion = 'v' .. GetResourceMetadata(GetCurrentResourceName(), "version", 0)
+        local currentVersion = 'v' .. GetResourceMetadata(cache.resource, "version", 0)
 
         if not currentVersion then
             lib.print.warn("[Version Check]: No version metadata found in fxmanifest.")
